@@ -33,7 +33,8 @@ public:
             float const* const pContinuousSamples, float const* const pSampleWeights,
             unsigned int const* const * const pSampleIndicesPerStratum,
             unsigned int const* const pSampleCountPerStratum, unsigned int const sampleStratumCount,
-            bool const outX);
+            bool const outX, float* const pConcordantWeight = 0, float* const pDiscordantWeight = 0,
+            float* const pUninformativeWeight = 0, float* const pRelevantWeight = 0);
 
     static float const
     computeConcordanceIndexWithTime(float const* const pDiscreteSamples,
@@ -41,7 +42,8 @@ public:
             float const* const pSampleWeights,
             unsigned int const* const * const pSampleIndicesPerStratum,
             unsigned int const* const pSampleCountPerStratum, unsigned int const sampleStratumCount,
-            bool const outX);
+            bool const outX, float* const pConcordantWeight = 0, float* const pDiscordantWeight = 0,
+            float* const pUninformativeWeight = 0, float* const pRelevantWeight = 0);
 
     static float const
     computeCramersV(float const* const pSamplesX, float const* const pSamplesY,
@@ -77,6 +79,9 @@ public:
     computePearsonCorrelation(float const* const pSamplesX, float const* const pSamplesY,
             float const* const pSampleWeights, unsigned int const* const pSampleIndices,
             unsigned int const sampleCount);
+
+    static int const
+    computeRandomNumber(unsigned int* const seed);
 
     static float const
     computeSomersD(float const c);
