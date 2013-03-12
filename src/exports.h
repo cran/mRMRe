@@ -1,45 +1,48 @@
-#ifndef ensemble_exports_h
-#define ensemble_exports_h
+#ifndef mRMRe_exports_h
+#define mRMRe_exports_h
 
-#include <Rcpp.h>
+#define USE_RINTERNALS
+
+#include <R.h>
+#include <Rinternals.h>
+#include <Rdefines.h>
+
+#include <cstdlib>
 #include <vector>
 
+#include "Filter.h"
 #include "Math.h"
 #include "MutualInformationMatrix.h"
-#include "Tree.h"
 
 extern "C" SEXP
-build_mim(SEXP R_DataMatrix, SEXP R_SampleStrata, SEXP R_SampleWeights, SEXP R_FeatureTypes,
-        SEXP R_SampleCount, SEXP R_FeatureCount, SEXP R_SampleStratumCount, SEXP R_UsesRanks,
-        SEXP R_OutX, SEXP R_BootstrapCount);
+export_concordance_index(SEXP samplesA, SEXP samplesB, SEXP samplesC, SEXP samplesD,
+        SEXP sampleStrata, SEXP sampleWeights, SEXP sampleStratumCount, SEXP outX, SEXP ratio,
+        SEXP concordantWeights, SEXP discordantWeights, SEXP uninformativeWeights,
+        SEXP relevantWeights);
 
 extern "C" SEXP
-build_mRMR_tree(SEXP R_ChildrenCountPerLevel, SEXP R_DataMatrix, SEXP R_SampleStrata,
-        SEXP R_SampleWeights, SEXP R_FeatureTypes, SEXP R_SampleCount, SEXP R_FeatureCount,
-        SEXP R_SampleStratumCount, SEXP R_TargetFeatureIndex, SEXP R_UsesRanks, SEXP R_OutX,
-        SEXP R_BootstrapCount);
+export_filters(SEXP childrenCountPerLevel, SEXP dataMatrix, SEXP priorsMatrix, SEXP priorsWeight,
+        SEXP sampleStrata, SEXP sampleWeights, SEXP featureTypes, SEXP sampleCount,
+        SEXP featureCount, SEXP sampleStratumCount, SEXP targetFeatureIndices,
+        SEXP continuousEstimator, SEXP outX, SEXP bootstrapCount, SEXP miMatrix);
 
 extern "C" SEXP
-compute_concordance_index(SEXP R_SamplesX, SEXP R_SamplesY, SEXP R_SampleStrata,
-        SEXP R_SampleWeights, SEXP R_SampleIndicesPerStratum, SEXP R_OutX);
+export_filters_bootstrap(SEXP solutionCount, SEXP solutionLength, SEXP dataMatrix,
+        SEXP priorsMatrix, SEXP priorsWeight, SEXP sampleStrata, SEXP sampleWeights,
+        SEXP featureTypes, SEXP sampleCount, SEXP featureCount, SEXP sampleStratumCount,
+        SEXP targetFeatureIndices, SEXP continuousEstimator, SEXP outX, SEXP bootstrapCount,
+        SEXP miMatrix);
 
 extern "C" SEXP
-compute_concordance_index_with_time(SEXP R_SamplesX, SEXP R_SamplesY, SEXP R_Time,
-        SEXP R_SampleWeights, SEXP R_SampleStrata, SEXP R_SampleStratumCount, SEXP R_OutX);
+export_mim(SEXP dataMatrix, SEXP priorsMatrix, SEXP priorsWeight, SEXP sampleStrata,
+        SEXP sampleWeights, SEXP featureTypes, SEXP sampleCount, SEXP featureCount,
+        SEXP sampleStratumCount, SEXP continuousEstimator, SEXP outX, SEXP bootstrapCount,
+        SEXP miMatrix);
 
 extern "C" SEXP
-compute_cramers_v(SEXP R_SamplesX, SEXP R_SamplesY, SEXP R_SampleWeights, SEXP R_SampleStrata,
-        SEXP R_SampleStratumCount, SEXP R_BootstrapCount);
+get_thread_count(SEXP threadCount);
 
 extern "C" SEXP
-compute_pearson_correlation(SEXP R_SamplesX, SEXP R_SamplesY, SEXP R_SampleWeights,
-        SEXP R_SampleStrata, SEXP R_SampleStratumCount, SEXP R_BootstrapCount);
+set_thread_count(SEXP threadCount);
 
-extern "C" SEXP
-compute_spearman_correlation(SEXP R_SamplesX, SEXP R_SamplesY, SEXP R_SampleWeights,
-        SEXP R_SampleStrata, SEXP R_SampleStratumCount, SEXP R_BootstrapCount);
-
-extern "C" SEXP
-set_thread_count(SEXP R_ThreadCount);
-
-#endif /* ensemble_exports_h */
+#endif /* mRMRe_exports_h */

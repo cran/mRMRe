@@ -1,1 +1,1 @@
-cgps: cgps_annot cgps_ge cgps_ic50
+cgps: cgps.annot cgps.ge cgps.ic50

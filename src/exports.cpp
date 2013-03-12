@@ -1,256 +1,213 @@
 #include "exports.h"
 
 extern "C" SEXP
-build_mim(SEXP R_DataMatrix, SEXP R_SampleStrata, SEXP R_SampleWeights, SEXP R_FeatureTypes,
-        SEXP R_SampleCount, SEXP R_FeatureCount, SEXP R_SampleStratumCount, SEXP R_UsesRanks,
-        SEXP R_OutX, SEXP R_BootstrapCount)
+export_concordance_index(SEXP samplesA, SEXP samplesB, SEXP samplesC, SEXP samplesD,
+        SEXP sampleStrata, SEXP sampleWeights, SEXP sampleStratumCount, SEXP outX, SEXP ratio,
+        SEXP concordantWeights, SEXP discordantWeights, SEXP uninformativeWeights,
+        SEXP relevantWeights)
 {
-    std::vector<float> S_DataMatrix = Rcpp::as < std::vector<float> > (R_DataMatrix);
-    std::vector<unsigned int> S_SampleStrata = Rcpp::as < std::vector<unsigned int>
-            > (R_SampleStrata);
-    std::vector<float> S_SampleWeights = Rcpp::as < std::vector<float> > (R_SampleWeights);
-    std::vector<unsigned int> S_FeatureTypes = Rcpp::as < std::vector<unsigned int>
-            > (R_FeatureTypes);
-    unsigned int const sample_count = Rcpp::as<unsigned int>(R_SampleCount);
-    unsigned int const feature_count = Rcpp::as<unsigned int>(R_FeatureCount);
-    unsigned int const sample_stratum_count = Rcpp::as<unsigned int>(R_SampleStratumCount);
-    bool const uses_ranks = Rcpp::as<bool>(R_UsesRanks);
-    bool const outX = Rcpp::as<bool>(R_OutX);
-    unsigned int const bootstrap_count = Rcpp::as<unsigned int>(R_BootstrapCount);
-    Data data(&S_DataMatrix[0], sample_count, feature_count, &S_SampleStrata[0],
-            &S_SampleWeights[0], &S_FeatureTypes[0], sample_stratum_count, uses_ranks, outX,
-            bootstrap_count);
-    MutualInformationMatrix mi_matrix(&data);
+    unsigned int const sample_count = LENGTH(samplesA);
+    unsigned int** p_sample_indices_per_stratum = new unsigned int*[INTEGER(sampleStratumCount)[0]];
+    unsigned int* const p_sample_count_per_stratum =
+            new unsigned int[INTEGER(sampleStratumCount)[0]];
+    Math::placeStratificationData(INTEGER(sampleStrata), REAL(sampleWeights),
+            p_sample_indices_per_stratum, p_sample_count_per_stratum,
+            INTEGER(sampleStratumCount)[0], sample_count);
+
+    if (LENGTH(samplesD) != 0 && LENGTH(samplesC) != 0)
+        REAL(ratio)[0] = Math::computeConcordanceIndex(REAL(samplesA), REAL(samplesB),
+                REAL(samplesC), REAL(samplesD), REAL(sampleWeights), p_sample_indices_per_stratum,
+                p_sample_count_per_stratum, INTEGER(sampleStratumCount)[0], INTEGER(outX)[0] != 0,
+                REAL(concordantWeights), REAL(discordantWeights), REAL(uninformativeWeights),
+                REAL(relevantWeights));
+    else if (LENGTH(samplesC) != 0)
+        REAL(ratio)[0] = Math::computeConcordanceIndex(REAL(samplesA), REAL(samplesB),
+                REAL(samplesC), REAL(sampleWeights), p_sample_indices_per_stratum,
+                p_sample_count_per_stratum, INTEGER(sampleStratumCount)[0], INTEGER(outX)[0] != 0,
+                REAL(concordantWeights), REAL(discordantWeights), REAL(uninformativeWeights),
+                REAL(relevantWeights));
+    else
+        REAL(ratio)[0] = Math::computeConcordanceIndex(REAL(samplesA), REAL(samplesB),
+                REAL(sampleWeights), p_sample_indices_per_stratum, p_sample_count_per_stratum,
+                INTEGER(sampleStratumCount)[0], INTEGER(outX)[0] != 0, REAL(concordantWeights),
+                REAL(discordantWeights), REAL(uninformativeWeights), REAL(relevantWeights));
+
+    delete[] p_sample_count_per_stratum;
+    for (unsigned int i = 0; i < INTEGER(sampleStratumCount)[0]; ++i)
+        delete[] p_sample_indices_per_stratum[i];
+    delete[] p_sample_indices_per_stratum;
+
+    return R_NilValue;
+}
+
+extern "C" SEXP
+export_filters(SEXP childrenCountPerLevel, SEXP dataMatrix, SEXP priorsMatrix, SEXP priorsWeight,
+        SEXP sampleStrata, SEXP sampleWeights, SEXP featureTypes, SEXP sampleCount,
+        SEXP featureCount, SEXP sampleStratumCount, SEXP targetFeatureIndices,
+        SEXP continuousEstimator, SEXP outX, SEXP bootstrapCount, SEXP miMatrix)
+{
+    Matrix const priors_matrix(REAL(priorsMatrix), INTEGER(featureCount)[0],
+            INTEGER(featureCount)[0]);
+    Matrix const* const p_priors_matrix =
+            LENGTH(priorsMatrix) == INTEGER(featureCount)[0] * INTEGER(featureCount)[0] ?
+                    &priors_matrix : 0;
+    Data data(REAL(dataMatrix), p_priors_matrix, REAL(priorsWeight)[0], INTEGER(sampleCount)[0],
+            INTEGER(featureCount)[0], INTEGER(sampleStrata), REAL(sampleWeights),
+            INTEGER(featureTypes), INTEGER(sampleStratumCount)[0], INTEGER(continuousEstimator)[0],
+            INTEGER(outX)[0] != 0, INTEGER(bootstrapCount)[0]);
+    MutualInformationMatrix mi_matrix(&data, REAL(miMatrix));
+
+    unsigned int solution_count = 1;
+    for (unsigned int i = 0; i < LENGTH(childrenCountPerLevel); ++i)
+        solution_count *= INTEGER(childrenCountPerLevel)[i];
+    unsigned int const feature_count_per_solution = LENGTH(childrenCountPerLevel);
+    unsigned int const chunk_size = solution_count * feature_count_per_solution;
+
+    SEXP result;
+    PROTECT(result = allocVector(VECSXP, 3));
+
+    SET_VECTOR_ELT(result, 0, allocVector(VECSXP, LENGTH(targetFeatureIndices)));
+    SET_VECTOR_ELT(result, 1, allocVector(VECSXP, LENGTH(targetFeatureIndices)));
+    SET_VECTOR_ELT(result, 2, allocVector(VECSXP, LENGTH(targetFeatureIndices)));
+
+    for (unsigned int i = 0; i < LENGTH(targetFeatureIndices); ++i)
+    {
+        Filter filter(INTEGER(childrenCountPerLevel), LENGTH(childrenCountPerLevel), &mi_matrix,
+                INTEGER(targetFeatureIndices)[i]);
+        filter.build();
+
+        SET_VECTOR_ELT(VECTOR_ELT(result, 0), i, allocVector(INTSXP, chunk_size));
+        SET_VECTOR_ELT(VECTOR_ELT(result, 1), i, allocVector(REALSXP, INTEGER(featureCount)[0]));
+        SET_VECTOR_ELT(VECTOR_ELT(result, 2), i, allocVector(REALSXP, chunk_size));
+
+        filter.getSolutions(INTEGER(VECTOR_ELT(VECTOR_ELT(result, 0), i)));
+        filter.getScores(REAL(VECTOR_ELT(VECTOR_ELT(result, 2), i)));
+
+        for (unsigned int k = 0; k < INTEGER(featureCount)[0]; ++k)
+            REAL(VECTOR_ELT(VECTOR_ELT(result, 1), i))[k] =
+                    std::numeric_limits<double>::quiet_NaN();
+
+        Math::computeCausality(REAL(VECTOR_ELT(VECTOR_ELT(result, 1), i)), &mi_matrix,
+                INTEGER(VECTOR_ELT(VECTOR_ELT(result, 0), i)), solution_count,
+                feature_count_per_solution, INTEGER(featureCount)[0],
+                INTEGER(targetFeatureIndices)[i]);
+    }
+
+    UNPROTECT(1);
+
+    return result;
+}
+
+extern "C" SEXP
+export_filters_bootstrap(SEXP solutionCount, SEXP solutionLength, SEXP dataMatrix,
+        SEXP priorsMatrix, SEXP priorsWeight, SEXP sampleStrata, SEXP sampleWeights,
+        SEXP featureTypes, SEXP sampleCount, SEXP featureCount, SEXP sampleStratumCount,
+        SEXP targetFeatureIndices, SEXP continuousEstimator, SEXP outX, SEXP bootstrapCount,
+        SEXP miMatrix)
+{
+    Matrix const priors_matrix(REAL(priorsMatrix), INTEGER(featureCount)[0],
+            INTEGER(featureCount)[0]);
+    Matrix const* const p_priors_matrix =
+            LENGTH(priorsMatrix) == INTEGER(featureCount)[0] * INTEGER(featureCount)[0] ?
+                    &priors_matrix : 0;
+    Data data(REAL(dataMatrix), p_priors_matrix, REAL(priorsWeight)[0], INTEGER(sampleCount)[0],
+            INTEGER(featureCount)[0], INTEGER(sampleStrata), REAL(sampleWeights),
+            INTEGER(featureTypes), INTEGER(sampleStratumCount)[0], INTEGER(continuousEstimator)[0],
+            INTEGER(outX)[0] != 0, INTEGER(bootstrapCount)[0]);
+    //MutualInformationMatrix mi_matrix(&data, REAL(miMatrix));
+
+    unsigned int solution_count = INTEGER(solutionCount)[0];
+    unsigned int const feature_count_per_solution = INTEGER(solutionLength)[0];
+    unsigned int const chunk_size = solution_count * feature_count_per_solution;
+
+    int* const p_children_count_per_level = new int[feature_count_per_solution];
+    for (unsigned int i = 0; i < feature_count_per_solution; ++i)
+        p_children_count_per_level[i] = 1;
+
+    SEXP result;
+    PROTECT(result = allocVector(VECSXP, 3));
+
+    SET_VECTOR_ELT(result, 0, allocVector(VECSXP, LENGTH(targetFeatureIndices)));
+    SET_VECTOR_ELT(result, 1, allocVector(VECSXP, LENGTH(targetFeatureIndices)));
+    SET_VECTOR_ELT(result, 2, allocVector(VECSXP, LENGTH(targetFeatureIndices)));
+
+    for (unsigned int i = 0; i < LENGTH(targetFeatureIndices); ++i)
+    {
+        SET_VECTOR_ELT(VECTOR_ELT(result, 0), i, allocVector(INTSXP, chunk_size));
+        SET_VECTOR_ELT(VECTOR_ELT(result, 1), i, allocVector(REALSXP, INTEGER(featureCount)[0]));
+        SET_VECTOR_ELT(VECTOR_ELT(result, 2), i, allocVector(REALSXP, chunk_size));
+
+        for (unsigned int k = 0; k < INTEGER(featureCount)[0]; ++k)
+            REAL(VECTOR_ELT(VECTOR_ELT(result, 1), i))[k] =
+                    std::numeric_limits<double>::quiet_NaN();
+    }
+
+    for (unsigned int i = 0; i < solution_count; ++i)
+    {
+        MutualInformationMatrix mi_matrix(&data);
+
+        for (unsigned int j = 0; j < LENGTH(targetFeatureIndices); ++j)
+        {
+            Filter filter(p_children_count_per_level, feature_count_per_solution, &mi_matrix,
+                    INTEGER(targetFeatureIndices)[j]);
+            filter.build();
+            filter.getSolutions(
+                    INTEGER(VECTOR_ELT(VECTOR_ELT(result, 0), j))
+                            + (i * feature_count_per_solution));
+            filter.getScores(
+                    REAL(VECTOR_ELT(VECTOR_ELT(result, 2), i)) + (i * feature_count_per_solution));
+
+            /*            Math::computeCausality(REAL(VECTOR_ELT(VECTOR_ELT(result, 1), i)), &mi_matrix,
+             INTEGER(VECTOR_ELT(VECTOR_ELT(result, 0), i)) + (i * chunk_size), 1,
+             feature_count_per_solution, INTEGER(featureCount)[0],
+             INTEGER(targetFeatureIndices)[i]);*/
+        }
+
+        data.bootstrap();
+    }
+
+    UNPROTECT(1);
+    delete[] p_children_count_per_level;
+    return result;
+}
+
+extern "C" SEXP
+export_mim(SEXP dataMatrix, SEXP priorsMatrix, SEXP priorsWeight, SEXP sampleStrata,
+        SEXP sampleWeights, SEXP featureTypes, SEXP sampleCount, SEXP featureCount,
+        SEXP sampleStratumCount, SEXP continuousEstimator, SEXP outX, SEXP bootstrapCount,
+        SEXP miMatrix)
+{
+    Matrix const priors_matrix(REAL(priorsMatrix), INTEGER(featureCount)[0],
+            INTEGER(featureCount)[0]);
+    Matrix const* const p_priors_matrix =
+            LENGTH(priorsMatrix) == INTEGER(featureCount)[0] * INTEGER(featureCount)[0] ?
+                    &priors_matrix : 0;
+    Data data(REAL(dataMatrix), p_priors_matrix, REAL(priorsWeight)[0], INTEGER(sampleCount)[0],
+            INTEGER(featureCount)[0], INTEGER(sampleStrata), REAL(sampleWeights),
+            INTEGER(featureTypes), INTEGER(sampleStratumCount)[0], INTEGER(continuousEstimator)[0],
+            INTEGER(outX)[0] != 0, INTEGER(bootstrapCount)[0]);
+    MutualInformationMatrix mi_matrix(&data, REAL(miMatrix));
     mi_matrix.build();
-    std::vector<float> S_MiMatrix = mi_matrix.getVectorizedData();
-    return Rcpp::wrap < std::vector<float> > (S_MiMatrix);
+
+    return R_NilValue;
 }
 
 extern "C" SEXP
-build_mRMR_tree(SEXP R_ChildrenCountPerLevel, SEXP R_DataMatrix, SEXP R_SampleStrata,
-        SEXP R_SampleWeights, SEXP R_FeatureTypes, SEXP R_SampleCount, SEXP R_FeatureCount,
-        SEXP R_SampleStratumCount, SEXP R_TargetFeatureIndex, SEXP R_UsesRanks, SEXP R_OutX,
-        SEXP R_BootstrapCount)
+get_thread_count(SEXP threadCount)
 {
-    std::vector<unsigned int> S_ChildrenCountPerLevel = Rcpp::as < std::vector<unsigned int>
-            > (R_ChildrenCountPerLevel);
-    std::vector<float> S_DataMatrix = Rcpp::as < std::vector<float> > (R_DataMatrix);
-    std::vector<unsigned int> S_SampleStrata = Rcpp::as < std::vector<unsigned int>
-            > (R_SampleStrata);
-    std::vector<float> S_SampleWeights = Rcpp::as < std::vector<float> > (R_SampleWeights);
-    std::vector<unsigned int> S_FeatureTypes = Rcpp::as < std::vector<unsigned int>
-            > (R_FeatureTypes);
-    unsigned int const sample_count = Rcpp::as<unsigned int>(R_SampleCount);
-    unsigned int const feature_count = Rcpp::as<unsigned int>(R_FeatureCount);
-    unsigned int const sample_stratum_count = Rcpp::as<unsigned int>(R_SampleStratumCount);
-    unsigned int const bootstrap_count = Rcpp::as<unsigned int>(R_BootstrapCount);
-    bool const uses_ranks = Rcpp::as<bool>(R_UsesRanks);
-    bool const outX = Rcpp::as<bool>(R_OutX);
-    Data data(&S_DataMatrix[0], sample_count, feature_count, &S_SampleStrata[0],
-            &S_SampleWeights[0], &S_FeatureTypes[0], sample_stratum_count, uses_ranks, outX,
-            bootstrap_count);
-    MutualInformationMatrix mi_matrix(&data);
-    unsigned int const target_feature_index = Rcpp::as<unsigned int>(R_TargetFeatureIndex);
-    Tree mRMR_tree(&S_ChildrenCountPerLevel[0], S_ChildrenCountPerLevel.size(), &mi_matrix,
-            target_feature_index);
-    mRMR_tree.build();
-    std::vector<unsigned int> S_Paths = mRMR_tree.getPaths();
-    std::vector<float> S_Scores = mRMR_tree.getScores();
-    std::vector<float> S_MiMatrix;
-    S_MiMatrix.resize(feature_count * feature_count);
-#pragma omp parallel for schedule(dynamic)
-    for (unsigned int i = 0; i < feature_count; ++i)
-        for (unsigned int j = 0; j < feature_count; ++j)
-            S_MiMatrix[(i * feature_count) + j] = mi_matrix.SymmetricMatrix::at(i, j);
-    return Rcpp::List::create(
-            Rcpp::Named("paths") = Rcpp::wrap < std::vector<unsigned int> > (S_Paths),
-            Rcpp::Named("scores") = Rcpp::wrap < std::vector<float> > (S_Scores),
-            Rcpp::Named("mim") = Rcpp::wrap < std::vector<float> > (S_MiMatrix));
+#ifdef _OPENMP
+    INTEGER(threadCount)[0] = omp_get_max_threads();
+#endif
+
+    return R_NilValue;
 }
 
 extern "C" SEXP
-compute_concordance_index(SEXP R_SamplesX, SEXP R_SamplesY, SEXP R_SampleWeights,
-        SEXP R_SampleStrata, SEXP R_SampleStratumCount, SEXP R_OutX)
+set_thread_count(SEXP threadCount)
 {
-    std::vector<float> S_SamplesX = Rcpp::as < std::vector<float> > (R_SamplesX);
-    std::vector<float> S_SamplesY = Rcpp::as < std::vector<float> > (R_SamplesY);
-    std::vector<float> S_SampleWeights = Rcpp::as < std::vector<float> > (R_SampleWeights);
-    std::vector<unsigned int> S_SampleStrata = Rcpp::as < std::vector<unsigned int>
-            > (R_SampleStrata);
-    unsigned int const sample_stratum_count = Rcpp::as<unsigned int>(R_SampleStratumCount);
-    bool const outX = Rcpp::as<bool>(R_OutX);
-    unsigned int const sample_count = S_SamplesX.size();
-    unsigned int** p_sample_indices_per_stratum = new unsigned int*[sample_stratum_count];
-    float* const p_total_weight_per_stratum = new float[sample_stratum_count];
-    unsigned int* const p_sample_count_per_stratum = new unsigned int[sample_stratum_count];
-    Math::placeStratificationData(&S_SampleStrata[0], &S_SampleWeights[0],
-            p_sample_indices_per_stratum, p_total_weight_per_stratum, p_sample_count_per_stratum,
-            sample_stratum_count, sample_count);
-    float concordant_weight;
-    float discordant_weight;
-    float uninformative_weight;
-    float relevant_weight;
-    float const r = Math::computeConcordanceIndex(&S_SamplesX[0], &S_SamplesY[0],
-            &S_SampleWeights[0], p_sample_indices_per_stratum, p_sample_count_per_stratum,
-            sample_stratum_count, outX, &concordant_weight, &discordant_weight,
-            &uninformative_weight, &relevant_weight);
-    delete[] p_sample_count_per_stratum;
-    delete[] p_total_weight_per_stratum;
-    for (unsigned int i = 0; i < sample_stratum_count; ++i)
-        delete[] p_sample_indices_per_stratum[i];
-    delete[] p_sample_indices_per_stratum;
-    return Rcpp::List::create(Rcpp::Named("statistic") = Rcpp::wrap<float>(r),
-            Rcpp::Named("concordant_weight") = Rcpp::wrap<float>(concordant_weight),
-            Rcpp::Named("discordant_weight") = Rcpp::wrap<float>(discordant_weight),
-            Rcpp::Named("uninformative_weight") = Rcpp::wrap<float>(uninformative_weight),
-            Rcpp::Named("relevant_weight") = Rcpp::wrap<float>(relevant_weight));
-}
+#ifdef _OPENMP
+    omp_set_num_threads(INTEGER(threadCount)[0]);
+#endif
 
-extern "C" SEXP
-compute_concordance_index_with_time(SEXP R_SamplesX, SEXP R_SamplesY, SEXP R_Time,
-        SEXP R_SampleWeights, SEXP R_SampleStrata, SEXP R_SampleStratumCount, SEXP R_OutX)
-{
-    std::vector<float> S_SamplesX = Rcpp::as < std::vector<float> > (R_SamplesX);
-    std::vector<float> S_SamplesY = Rcpp::as < std::vector<float> > (R_SamplesY);
-    std::vector<float> S_Time = Rcpp::as < std::vector<float> > (R_Time);
-    std::vector<float> S_SampleWeights = Rcpp::as < std::vector<float> > (R_SampleWeights);
-    std::vector<unsigned int> S_SampleStrata = Rcpp::as < std::vector<unsigned int>
-            > (R_SampleStrata);
-    unsigned int const sample_stratum_count = Rcpp::as<unsigned int>(R_SampleStratumCount);
-    bool const outX = Rcpp::as<bool>(R_OutX);
-    unsigned int const sample_count = S_SamplesX.size();
-    unsigned int** p_sample_indices_per_stratum = new unsigned int*[sample_stratum_count];
-    float* const p_total_weight_per_stratum = new float[sample_stratum_count];
-    unsigned int* const p_sample_count_per_stratum = new unsigned int[sample_stratum_count];
-    Math::placeStratificationData(&S_SampleStrata[0], &S_SampleWeights[0],
-            p_sample_indices_per_stratum, p_total_weight_per_stratum, p_sample_count_per_stratum,
-            sample_stratum_count, sample_count);
-    float concordant_weight;
-    float discordant_weight;
-    float uninformative_weight;
-    float relevant_weight;
-    float const r = Math::computeConcordanceIndexWithTime(&S_SamplesX[0], &S_SamplesY[0],
-            &S_Time[0], &S_SampleWeights[0], p_sample_indices_per_stratum,
-            p_sample_count_per_stratum, sample_stratum_count, outX, &concordant_weight,
-            &discordant_weight, &uninformative_weight, &relevant_weight);
-    delete[] p_sample_count_per_stratum;
-    delete[] p_total_weight_per_stratum;
-    for (unsigned int i = 0; i < sample_stratum_count; ++i)
-        delete[] p_sample_indices_per_stratum[i];
-    delete[] p_sample_indices_per_stratum;
-    return Rcpp::List::create(Rcpp::Named("statistic") = Rcpp::wrap<float>(r),
-            Rcpp::Named("concordant_weight") = Rcpp::wrap<float>(concordant_weight),
-            Rcpp::Named("discordant_weight") = Rcpp::wrap<float>(discordant_weight),
-            Rcpp::Named("uninformative_weight") = Rcpp::wrap<float>(uninformative_weight),
-            Rcpp::Named("relevant_weight") = Rcpp::wrap<float>(relevant_weight));
-}
-
-extern "C" SEXP
-compute_cramers_v(SEXP R_SamplesX, SEXP R_SamplesY, SEXP R_SampleWeights, SEXP R_SampleStrata,
-        SEXP R_SampleStratumCount, SEXP R_BootstrapCount)
-{
-    std::vector<float> S_SamplesX = Rcpp::as < std::vector<float> > (R_SamplesX);
-    std::vector<float> S_SamplesY = Rcpp::as < std::vector<float> > (R_SamplesY);
-    std::vector<float> S_SampleWeights = Rcpp::as < std::vector<float> > (R_SampleWeights);
-    std::vector<unsigned int> S_SampleStrata = Rcpp::as < std::vector<unsigned int>
-            > (R_SampleStrata);
-    unsigned int const sample_stratum_count = Rcpp::as<unsigned int>(R_SampleStratumCount);
-    unsigned int const sample_count = S_SamplesX.size();
-    unsigned int const bootstrap_count = Rcpp::as<unsigned int>(R_BootstrapCount);
-    unsigned int** p_sample_indices_per_stratum = new unsigned int*[sample_stratum_count];
-    float* const p_total_weight_per_stratum = new float[sample_stratum_count];
-    unsigned int* const p_sample_count_per_stratum = new unsigned int[sample_stratum_count];
-    Math::placeStratificationData(&S_SampleStrata[0], &S_SampleWeights[0],
-            p_sample_indices_per_stratum, p_total_weight_per_stratum, p_sample_count_per_stratum,
-            sample_stratum_count, sample_count);
-    float const r = Math::computeCramersV(&S_SamplesX[0], &S_SamplesY[0], &S_SampleWeights[0],
-            p_sample_indices_per_stratum, p_total_weight_per_stratum, p_sample_count_per_stratum,
-            sample_stratum_count, bootstrap_count);
-    delete[] p_sample_count_per_stratum;
-    delete[] p_total_weight_per_stratum;
-    for (unsigned int i = 0; i < sample_stratum_count; ++i)
-        delete[] p_sample_indices_per_stratum[i];
-    delete[] p_sample_indices_per_stratum;
-    return Rcpp::wrap<float>(r);
-}
-
-extern "C" SEXP
-compute_pearson_correlation(SEXP R_SamplesX, SEXP R_SamplesY, SEXP R_SampleWeights,
-        SEXP R_SampleStrata, SEXP R_SampleStratumCount, SEXP R_BootstrapCount)
-{
-    std::vector<float> S_SamplesX = Rcpp::as < std::vector<float> > (R_SamplesX);
-    std::vector<float> S_SamplesY = Rcpp::as < std::vector<float> > (R_SamplesY);
-    std::vector<float> S_SampleWeights = Rcpp::as < std::vector<float> > (R_SampleWeights);
-    std::vector<unsigned int> S_SampleStrata = Rcpp::as < std::vector<unsigned int>
-            > (R_SampleStrata);
-    unsigned int const sample_stratum_count = Rcpp::as<unsigned int>(R_SampleStratumCount);
-    unsigned int const sample_count = S_SamplesX.size();
-    unsigned int const bootstrap_count = Rcpp::as<unsigned int>(R_BootstrapCount);
-    unsigned int** p_sample_indices_per_stratum = new unsigned int*[sample_stratum_count];
-    float* const p_total_weight_per_stratum = new float[sample_stratum_count];
-    unsigned int* const p_sample_count_per_stratum = new unsigned int[sample_stratum_count];
-    Math::placeStratificationData(&S_SampleStrata[0], &S_SampleWeights[0],
-            p_sample_indices_per_stratum, p_total_weight_per_stratum, p_sample_count_per_stratum,
-            sample_stratum_count, sample_count);
-    float const r = Math::computePearsonCorrelation(&S_SamplesX[0], &S_SamplesY[0],
-            &S_SampleWeights[0], p_sample_indices_per_stratum, p_total_weight_per_stratum,
-            p_sample_count_per_stratum, sample_stratum_count, bootstrap_count);
-    delete[] p_sample_count_per_stratum;
-    delete[] p_total_weight_per_stratum;
-    for (unsigned int i = 0; i < sample_stratum_count; ++i)
-        delete[] p_sample_indices_per_stratum[i];
-    delete[] p_sample_indices_per_stratum;
-    return Rcpp::wrap<float>(r);
-}
-
-extern "C" SEXP
-compute_spearman_correlation(SEXP R_SamplesX, SEXP R_SamplesY, SEXP R_SampleWeights,
-        SEXP R_SampleStrata, SEXP R_SampleStratumCount, SEXP R_BootstrapCount)
-{
-    std::vector<float> S_SamplesX = Rcpp::as < std::vector<float> > (R_SamplesX);
-    std::vector<float> S_SamplesY = Rcpp::as < std::vector<float> > (R_SamplesY);
-    std::vector<float> S_SampleWeights = Rcpp::as < std::vector<float> > (R_SampleWeights);
-    std::vector<unsigned int> S_SampleStrata = Rcpp::as < std::vector<unsigned int>
-            > (R_SampleStrata);
-    unsigned int const sample_stratum_count = Rcpp::as<unsigned int>(R_SampleStratumCount);
-    unsigned int const sample_count = S_SamplesX.size();
-    unsigned int const bootstrap_count = Rcpp::as<unsigned int>(R_BootstrapCount);
-    unsigned int** p_sample_indices_per_stratum = new unsigned int*[sample_stratum_count];
-    float* const p_total_weight_per_stratum = new float[sample_stratum_count];
-    unsigned int* const p_sample_count_per_stratum = new unsigned int[sample_stratum_count];
-    Math::placeStratificationData(&S_SampleStrata[0], &S_SampleWeights[0],
-            p_sample_indices_per_stratum, p_total_weight_per_stratum, p_sample_count_per_stratum,
-            sample_stratum_count, sample_count);
-    float* const p_ordered_samples_x = new float[sample_count];
-    float* const p_ordered_samples_y = new float[sample_count];
-    Math::placeOrders(&S_SamplesX[0], p_ordered_samples_x, p_sample_indices_per_stratum,
-            p_sample_count_per_stratum, sample_stratum_count);
-    Math::placeOrders(&S_SamplesY[0], p_ordered_samples_y, p_sample_indices_per_stratum,
-            p_sample_count_per_stratum, sample_stratum_count);
-    float* const p_ranked_samples_x = new float[sample_count];
-    float* const p_ranked_samples_y = new float[sample_count];
-    Math::placeRanksFromOrders(&S_SamplesX[0], &S_SamplesY[0], p_ordered_samples_x,
-            p_ordered_samples_y, p_ranked_samples_x, p_ranked_samples_y,
-            p_sample_indices_per_stratum, p_sample_count_per_stratum, sample_stratum_count);
-    float const r = Math::computePearsonCorrelation(p_ranked_samples_x, p_ranked_samples_y,
-            &S_SampleWeights[0], p_sample_indices_per_stratum, p_total_weight_per_stratum,
-            p_sample_count_per_stratum, sample_stratum_count, bootstrap_count);
-    delete[] p_ordered_samples_x;
-    delete[] p_ordered_samples_y;
-    delete[] p_ranked_samples_x;
-    delete[] p_ranked_samples_y;
-    delete[] p_sample_count_per_stratum;
-    delete[] p_total_weight_per_stratum;
-    for (unsigned int i = 0; i < sample_stratum_count; ++i)
-        delete[] p_sample_indices_per_stratum[i];
-    delete[] p_sample_indices_per_stratum;
-    return Rcpp::wrap<float>(r);
-}
-
-extern "C" SEXP
-set_thread_count(SEXP R_ThreadCount)
-{
-    unsigned int const thread_count = Rcpp::as<unsigned int>(R_ThreadCount);
-    omp_set_num_threads(thread_count);
     return R_NilValue;
 }

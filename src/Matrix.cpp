@@ -1,7 +1,7 @@
 #include "Matrix.h"
 
 Matrix::Matrix(unsigned int const rowCount, unsigned int const columnCount) :
-        mpData(new float[rowCount * columnCount]), mRowCount(rowCount), mColumnCount(columnCount), mHasAllocation(
+        mpData(new double[rowCount * columnCount]), mRowCount(rowCount), mColumnCount(columnCount), mHasAllocation(
                 true)
 {
 
@@ -9,14 +9,14 @@ Matrix::Matrix(unsigned int const rowCount, unsigned int const columnCount) :
 
 /* explicit */
 Matrix::Matrix(unsigned int const size, unsigned int const rowCount, unsigned int const columnCount) :
-        mpData(new float[size]), mRowCount(rowCount), mColumnCount(columnCount), mHasAllocation(
+        mpData(new double[size]), mRowCount(rowCount), mColumnCount(columnCount), mHasAllocation(
                 true)
 {
 
 }
 
 /* explicit */
-Matrix::Matrix(float* const pData, unsigned int const rowCount, unsigned int const columnCount) :
+Matrix::Matrix(double* const pData, unsigned int const rowCount, unsigned int const columnCount) :
         mpData(pData), mRowCount(rowCount), mColumnCount(columnCount), mHasAllocation(false)
 {
 
@@ -29,16 +29,16 @@ Matrix::~Matrix()
         delete[] mpData;
 }
 
-/* virtual */float&
+/* virtual */double&
 Matrix::at(unsigned int const i, unsigned int const j)
 {
     return mpData[(j * mRowCount) + i];
 }
 
-float const&
+/* virtual */double const&
 Matrix::at(unsigned int const i, unsigned int const j) const
 {
-    return const_cast<Matrix*>(this)->at(i, j);
+    return mpData[(j * mRowCount) + i];
 }
 
 unsigned int const
@@ -51,18 +51,4 @@ unsigned int const
 Matrix::getRowCount() const
 {
     return mRowCount;
-}
-
-std::vector<float> const
-Matrix::getVectorizedData() const
-{
-    std::vector<float> vector;
-    vector.resize(mRowCount * mColumnCount);
-
-#pragma omp parallel for schedule(dynamic)
-    for (unsigned int i = 0; i < mColumnCount; ++i)
-        for (unsigned int j = 0; j < mRowCount; ++j)
-            vector[(i * mRowCount) + j] = at(i, j);
-
-    return vector;
 }

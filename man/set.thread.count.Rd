@@ -1,23 +1,27 @@
 \name{set.thread.count}
 \alias{set.thread.count}
-\title{Sets the maximum number of threads that can be launched}
-\description{This function sets the maximum number of threads that can be launched.}
-\usage{set.thread.count(thread_count)}
+%- Also NEED an '\alias' for EACH other topic documented here.
+\title{
+openMP Thread Count}
+\description{
+This methods allows you to set the number of cores currently accessible to openMP
+}
+\usage{
+set.thread.count(thread_count)
+}
 \arguments{
-  \item{thread_count}{Maximum number of threads.}
+  \item{thread_count}{number of OPENMP threads to be used}
 }
-%\details{}
-\value{None}
-%\references{}
-\author{Nicolas De Jay, Simon Papillon-Cavanagh, Benjamin Haibe-Kains}
-%\note{}
-%\seealso{}
+\author{
+Nicolas De Jay, Simon Papillon-Cavanagh, Benjamin Haibe-Kains
+}
 \examples{
-data(cgps)
+# Access to number of available threads
+threads <- get.thread.count()
+# Force a single threaded openMP job
+set.thread.count(1)
 
-set.thread.count(4)
-mim <- build.mim(data.frame(target=cgps_ic50, cgps_ge))
-head(mim)
-
+# Revert back to all accessible threads
+set.thread.count(threads)
 }
-%\keyword{ ~kwd1 }
+\keyword{methods}

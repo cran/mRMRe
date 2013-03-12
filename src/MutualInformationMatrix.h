@@ -1,29 +1,40 @@
-#ifndef ensemble_MutualInformationMatrix_h
-#define ensemble_MutualInformationMatrix_h
+#ifndef mRMRe_MutualInformationMatrix_h
+#define mRMRe_MutualInformationMatrix_h
 
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 
 #include "Data.h"
-#include "SymmetricMatrix.h"
+#include "Matrix.h"
 
-class MutualInformationMatrix : public SymmetricMatrix
+class MutualInformationMatrix : public Matrix
 {
+private:
+    MutualInformationMatrix(const MutualInformationMatrix&);
+
+    MutualInformationMatrix&
+    operator=(const MutualInformationMatrix&);
+
 protected:
     Data const* const mpData;
 
 public:
     MutualInformationMatrix(Data const* const pData);
 
-    MutualInformationMatrix(Data const* const pData, float* const pInternalData);
+    MutualInformationMatrix(Data const* const pData, double* const pInternalData);
 
     virtual
     ~MutualInformationMatrix();
 
-    virtual float&
+    virtual double&
     at(unsigned int const i, unsigned int const j);
+
+    virtual double const&
+    at(unsigned int const i, unsigned int const j) const;
 
     void const
     build();
 };
 
-#endif /* ensemble_MutualInformationMatrix_h */
+#endif /* mRMRe_MutualInformationMatrix_h */
