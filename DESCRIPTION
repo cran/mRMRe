@@ -1,8 +1,8 @@
 Package: mRMRe
 Type: Package
 Title: R package for parallelized mRMR ensemble feature selection
-Version: 2.0.0
-Date: 2013-03-12
+Version: 2.0.2
+Date: 2013-05-14
 Author: Nicolas De Jay, Simon Papillon-Cavanagh, Catharina Olsen,
         Gianluca Bontempi, Benjamin Haibe-Kains
 Maintainer: Benjamin Haibe-Kains <bhaibeka@ircm.qc.ca>
@@ -12,9 +12,9 @@ Description: This package contains a set of function to compute mutual
         selection with mRMR and a new ensemble mRMR technique.
 License: Artistic-2.0
 Imports:
-Depends: R (>= 2.10), survival, igraph, methods
+Depends: survival, igraph, methods
 LinkingTo:
-Packaged: 2013-04-16 00:54:52 UTC; haibeb
+Packaged: 2013-05-23 14:38:39 UTC; haibeb
 NeedsCompilation: yes
 Repository: CRAN
-Date/Publication: 2013-04-16 19:36:21
+Date/Publication: 2013-05-23 17:35:05

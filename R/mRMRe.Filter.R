@@ -18,9 +18,15 @@ setClass("mRMRe.Filter", representation(filters = "list", scores = "list", mi_ma
 ## initialize
 
 setMethod("initialize", signature("mRMRe.Filter"),
-        function(.Object, data, prior_weight, target_indices, levels, method = "exhaustive", continuous_estimator = "pearson", outX = TRUE,
-                bootstrap_count = 0)
+        function(.Object, data, prior_weight, target_indices, levels, 
+          method = c("exhaustive", "bootstrap"), 
+          continuous_estimator = c("pearson", "spearman", "kendall", "frequency"), 
+          outX = TRUE,
+          bootstrap_count = 0)
 {
+    method <- match.arg(method)
+    continuous_estimator <- match.arg(continuous_estimator)
+    
     if (class(data) != "mRMRe.Data")
         stop("data must be of type mRMRe.Data")
     
@@ -157,18 +163,30 @@ setMethod("solutions", signature("mRMRe.Filter"), function(object, mi_threshold 
 ## scores
 setMethod("scores", signature("mRMRe.Filter"), function(object)
 {
-	scores <- lapply(object@target_indices, function(target_index) {
-				result_matrix <- object@scores[[as.character(target_index)]]
-				return(apply(as.matrix(result_matrix), 2, rev))
+	mi_matrix <- mim(object)
+	targets <- as.character(target(object))
+	scores <- lapply(targets, function(target) {
+				apply(solutions(object)[[target]], 2, function(solution) {
+							sapply(1:length(solution), function(i) {
+										feature_i <- solution[i] 
+										if(i == 1)
+											return(mi_matrix[as.numeric(target), feature_i])
+										
+										ancestry_score <- mean(sapply((i-1):1, function(j) mi_matrix[feature_i, solution[j]]))
+										return(mi_matrix[as.numeric(target), feature_i] - ancestry_score)
+									})
+							
+						})
 			})
-	names(scores) <- object@target_indices
+	names(scores) <- targets
 	return(scores)
 })
 
 ## mim
 
-setMethod("mim", signature("mRMRe.Filter"), function(object)
+setMethod("mim", signature("mRMRe.Filter"), function(object, method=c("mi", "cor"))
 {
+    method <- match.arg(method)
     # mi_matrix[i, j] contains the biased correlation between
     # features i and j (i -> j directionality)
     return(object@mi_matrix)
