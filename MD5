@@ -1,8 +1,8 @@
-dcd4cb6c5192cc187dea0740230fd870 *DESCRIPTION
+e94e24772e141a561b808addeaf9081d *DESCRIPTION
 a92dc3579ddc15c12f34f06470008e71 *NAMESPACE
-8e5a7ca91ba895bfb67d79f66285abd4 *R/generics.R
-48631a113525ea86bf8fda5748d8e89d *R/mRMRe.Data.R
-1de91d4cafec7b21e6ccb90fd8f095d8 *R/mRMRe.Filter.R
+a91c4b33c43bc592b223980753e13edd *R/generics.R
+1d5ec14adf68c4cf5b48851928503be8 *R/mRMRe.Data.R
+48e1859f0de3023307b92064ad93080a *R/mRMRe.Filter.R
 11cf691c716154173d8683e235c837d0 *R/mRMRe.Network.R
 1a4c7f5d615f28cb910f0a68beeed13f *build/vignette.rds
 c4f521e3ef646551a03933016021b8f6 *data/cgps.rda
@@ -10,7 +10,7 @@ c4f521e3ef646551a03933016021b8f6 *data/cgps.rda
 2ddba9de43559afca58eeceffc94d627 *inst/CITATION
 3fe872ac130474fa4d8784eb6cb78f29 *inst/doc/mRMRe.R
 c10a96f483a2addc0d1f5acf12f97f0a *inst/doc/mRMRe.Rnw
-b1631cca4f37cfe55c1162e983c41b04 *inst/doc/mRMRe.pdf
+189babded1563a5a345367fbfba4b103 *inst/doc/mRMRe.pdf
 ac8c5f7b0c237935cba73f8899db4179 *man/adjacencyMatrix.Rd
 de70ca39df9d75ebb2b17896f5aa1efe *man/causality.Rd
 e9e9efcb2c60ffb169efb815b781be6c *man/cgps.Rd
