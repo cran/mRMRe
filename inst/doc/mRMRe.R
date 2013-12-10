@@ -20,7 +20,13 @@ library(mRMRe)
 
 
 ###################################################
-### code chunk number 4: loadlib
+### code chunk number 4: utils
+###################################################
+set.thread.count(2)
+
+
+###################################################
+### code chunk number 5: loadlib
 ###################################################
 data(cgps)
 data.annot <- data.frame(cgps.annot)
@@ -28,7 +34,7 @@ data.cgps <- data.frame(cgps.ic50, cgps.ge)
 
 
 ###################################################
-### code chunk number 5: mim
+### code chunk number 6: mim
 ###################################################
 ## Test on a dummy dataset.
 
@@ -55,7 +61,7 @@ print(mim(subsetData(dd, 1:4, 1:4)))
 
 
 ###################################################
-### code chunk number 6: mim2
+### code chunk number 7: mim2
 ###################################################
 ## Test on the 'cgps' dataset, where the
 ## variables are all of continuous type.
@@ -73,7 +79,7 @@ print(pearson_mim[1:4, 1:4])
 
 
 ###################################################
-### code chunk number 7: correlations
+### code chunk number 8: correlations
 ###################################################
 # Compute c-index between feature 1 and 2
 correlate(cgps.ge[, 1], cgps.ge[, 2], method = "cindex")
@@ -97,7 +103,7 @@ correlate(cgps.ge[, 1], cgps.ge[, 2], strata = strata,
 
 
 ###################################################
-### code chunk number 8: classic.mRMR
+### code chunk number 9: classic.mRMR
 ###################################################
 dd <- mRMR.data(data = data.cgps)
 
@@ -106,7 +112,7 @@ mRMR.classic(data = dd, target_indices = c(1),
 
 
 ###################################################
-### code chunk number 9: ensemble.mRMR
+### code chunk number 10: ensemble.mRMR
 ###################################################
 dd <- mRMR.data(data = data.cgps)
 
@@ -120,18 +126,12 @@ mRMR.ensemble(data = dd, target_indices = c(1),
 
 
 ###################################################
-### code chunk number 10: causality
+### code chunk number 11: causality
 ###################################################
 ensemble <- mRMR.ensemble(data = dd, target_indices = c(1),
                           solution_count = 5,
                           feature_count = 10)
 causality(ensemble)
-
-
-###################################################
-### code chunk number 11: utils
-###################################################
-set.thread.count(3)
 
 
 ###################################################

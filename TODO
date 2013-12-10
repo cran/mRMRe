@@ -1,0 +1,29 @@
+- Remove usage of data as a variable
+
+- Revise R code for imperfections and inefficiencies
+
+- Finish documentation [URGENT]
+
+- Vignettes [URGENT]
+
+- Submisssion to CRAN [URGENT]
+
+- MPI
+
+- Barcode and likelihood
+
+- Implement more functions to existing S4 classes (especially mRMRe.Network)
+	- Compute Likelihood
+	- Linear Regression Models??
+
+- The order of solutions should be reversed, the top indices should be the most relevant ones. Currently the last ones are the first selected by the method
+
+- We need to optimize the building of mRMRe.Data objects and the function subsetData. If one wants to study the stability of our methods one must perform many resampling of the data and most of the time is then spent in building mRMRe.Data objects
+
+- When users specify the threshold for MI or causality scores, one should check the redundancy of the variable selection again as many shrunk solutions may be identical
+
+- Adjacency matrix should be directed if causality inference is performed: parents (selected features) in rows, children (target features) in columns
+
+- mRMR score of each solution should be stored in the mRMR.Filter and mRMR.Network objects
+
+- in mRMRe.Filter user should be able to specify some features that are already selected; for instance let say that the user wants to find solutions that starts with features 1, 5, and 27 and see wich ar the next features taht will selected. This scenario is relevant to cancer research where we want to include some clinical parameters by defaults in our feature selection.
