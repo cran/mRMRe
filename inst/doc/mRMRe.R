@@ -1,5 +1,4 @@
 ### R code from vignette source 'mRMRe.Rnw'
-### Encoding: ISO8859-1
 
 ###################################################
 ### code chunk number 1: setup
@@ -130,12 +129,23 @@ mRMR.ensemble(data = dd, target_indices = c(1),
 ###################################################
 ensemble <- mRMR.ensemble(data = dd, target_indices = c(1),
                           solution_count = 5,
+                          feature_count = 10,
+                          fixed_feature_count = 1)
+
+solutions(ensemble, with_fixed_features = FALSE)
+
+
+###################################################
+### code chunk number 12: causality
+###################################################
+ensemble <- mRMR.ensemble(data = dd, target_indices = c(1),
+                          solution_count = 5,
                           feature_count = 10)
 causality(ensemble)
 
 
 ###################################################
-### code chunk number 12: sessionInfo
+### code chunk number 13: sessionInfo
 ###################################################
 toLatex(sessionInfo())
 
