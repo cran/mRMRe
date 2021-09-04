@@ -1,16 +1,16 @@
-5ed6858b5ad4e95dd6e5f6de3bb02472 *DESCRIPTION
+f9daf66ce5df2e09f5842d291e49fb82 *DESCRIPTION
 feef27c98c8ad9e71e0498897efdd6a3 *NAMESPACE
 a91c4b33c43bc592b223980753e13edd *R/generics.R
 babde41d9da4424944d32c9dedf0c6f9 *R/mRMRe.Data.R
 cd2b908765ece2876ecfa6634e4ab217 *R/mRMRe.Filter.R
 11cf691c716154173d8683e235c837d0 *R/mRMRe.Network.R
 b532e7099be4a07eadd743eb88dfa830 *build/vignette.rds
-6ea53c53653282a4ec93f2b5c07f4647 *data/cgps.rda
+9de555a33f52890d702e8e7b15374a77 *data/cgps.rda
 0dbbba0c9cb8439f0edc92b10ed7f6c9 *data/datalist
 2ddba9de43559afca58eeceffc94d627 *inst/CITATION
 1dbbe402647879a2894c459ce37e5244 *inst/doc/mRMRe.R
 e8f66270e5ab61f92dcc8f5c8d8d58fb *inst/doc/mRMRe.Rnw
-4d543b047bb3b009d244c09cd2e7efab *inst/doc/mRMRe.pdf
+d27fb6569cc5bdd6bb1ee9f6cae83236 *inst/doc/mRMRe.pdf
 e63067d6aa572ba94bcc66c22c22453a *man/adjacencyMatrix.Rd
 238bae67425a1070839079139459a159 *man/causality.Rd
 3e1181de2674b21fb437ed04284535d3 *man/cgps.Rd
@@ -35,7 +35,7 @@ cf183bd2d898fcf62c1026fe320999c0 *man/sampleCount.Rd
 0d4d517b9d70e725afc57f97254068af *man/sampleWeights.Rd
 8d64a264cac71d15669ae3ec5c69d57d *man/scores.Rd
 3d5baebabf59e98b2b491eb6097f40de *man/set.thread.count.Rd
-672624e76f5736b05cd81465ae8982cc *man/set_thread_count.Rd
+2cf37a787850955ac92b771f4a57f9e7 *man/set_thread_count.Rd
 36fed8c5a0cb4916bf8ca6f7f1e4690d *man/solutions.Rd
 121b818735c3ee05a183ecb182f09443 *man/subsetData.Rd
 4d366d37b7e70124d1c920d3eeb79dd6 *man/target.Rd
@@ -52,6 +52,6 @@ cad0e20a530b3cbf49dc5b448cca8123 *src/Matrix.h
 30d186050b8973f6e1c3476679c7526a *src/MutualInformationMatrix.cpp
 d10a6d96686d743437cff8db65168da4 *src/MutualInformationMatrix.h
 49db01e79590e47917acb6090a0a4594 *src/exports.cpp
-15fa2b294164873dd1cd95ceaf6685ec *src/exports.h
+5f2069e1b4efa9bf91c155c49079bd3c *src/exports.h
 004927a4e6394a74af401e10ad62a5aa *vignettes/biblio.bib
 e8f66270e5ab61f92dcc8f5c8d8d58fb *vignettes/mRMRe.Rnw
