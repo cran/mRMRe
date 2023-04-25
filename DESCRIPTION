@@ -1,7 +1,7 @@
 Package: mRMRe
 Type: Package
 Title: Parallelized Minimum Redundancy, Maximum Relevance (mRMR)
-Version: 2.1.2
+Version: 2.1.2.1
 Date: 2021-09-03
 Authors@R: c(
   person('Nicolas', 'De Jay', role=c('aut')), 
@@ -22,7 +22,7 @@ Depends: R (>= 3.5), survival, igraph, methods
 URL: https://www.pmgenomics.ca/bhklab/
 RoxygenNote: 7.1.1
 NeedsCompilation: yes
-Packaged: 2021-09-03 19:17:45 UTC; ceeles
+Packaged: 2023-04-25 05:52:17 UTC; hornik
 Author: Nicolas De Jay [aut],
   Simon Papillon-Cavanagh [aut],
   Catharina Olsen [aut],
@@ -32,4 +32,4 @@ Author: Nicolas De Jay [aut],
   Benjamin Haibe-Kains [aut, cre]
 Maintainer: Benjamin Haibe-Kains <benjamin.haibe.kains@utoronto.ca>
 Repository: CRAN
-Date/Publication: 2021-09-04 05:20:02 UTC
+Date/Publication: 2023-04-25 05:57:25 UTC
